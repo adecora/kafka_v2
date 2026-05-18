@@ -24,7 +24,7 @@ public class KStreamAggApp {
     private static Topology createTopology() {
 
         final String inputTopic = "temperature-telemetry";
-        final String outputTopic = "temperature-telemetry-max";
+        final String outputTopic = "temperature-telemetry-max-temperature";
 
         final Map<String, String> serdeConfig = Collections.singletonMap("schema.registry.url", "http://localhost:8081");
         //Creamos un Serde de tipo Avro ya que el productor produce <String,TemperatureTelemetry>

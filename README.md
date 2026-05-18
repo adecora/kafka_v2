@@ -1,6 +1,12 @@
 
 # Kafka y Procesamiento en Tiempo Real
 
+![Kafka](https://img.shields.io/badge/Apache-Kafka-black?logo=apachekafka)
+![Docker](https://img.shields.io/badge/Docker-Compose-blue?logo=docker)
+![ksqlDB](https://img.shields.io/badge/ksqlDB-Streaming-purple)
+![MySQL](https://img.shields.io/badge/MySQL-Database-orange?logo=mysql)
+![MongoDB](https://img.shields.io/badge/MongoDB-NoSQL-green?logo=mongodb)
+
 ## Prerrequisitos
 
 * [Docker Instalado](https://docs.docker.com/get-docker/)

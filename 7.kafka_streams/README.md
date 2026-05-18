@@ -47,7 +47,7 @@ Los pasos para llevar a cabo la agregación son:
 4. Transformar la KTable resultante en un KStream (Las operaciones stateful siempre devuelven un KTable)
 5. Escribir el KStream en el topic final
 
-El stream resultante de este filtro producirá eventos en el topic **temperature-telemetry-max**
+El stream resultante de este filtro producirá eventos en el topic **temperature-telemetry-max-temperature**
 
 Revisa el código de la aplicación para entender los pasos.
 

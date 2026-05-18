@@ -1,9 +1,11 @@
 
 # Entorno
 
+<img src="./assets/docker_compose_logo.png" alt="docker compose" width="200"/>
+
 ## Descripción
 
-El entorno local se basa en un docker 🐳 con los siguientes contenedores 
+El entorno local se basa en un **docker compose** con los siguientes contenedores 
 
 ```             
 controller-1
@@ -39,7 +41,7 @@ docker compose ps
 * parar el entorno:
 
 ```bash
-docker compose down -v
+docker compose down -v --remove-orphans
 ```
 
 ## URLs

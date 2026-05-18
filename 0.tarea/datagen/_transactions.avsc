@@ -1,6 +1,6 @@
 {
   "namespace": "com.farmia.sales",
-  "name": "SalesTransaction",
+  "name": "FakeSalesTransaction",
   "type": "record",
   "fields": [
     {

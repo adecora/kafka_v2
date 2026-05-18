@@ -43,8 +43,8 @@ class Producer {
     }
 
     protected TemperatureTelemetry createRandomTemperatureTelemetry() {
-        int id = random.ints(1, 10).findFirst().getAsInt();
-        int temperature = random.ints(15, 40).findFirst().getAsInt();
+        int id = random.ints(1, 100).findFirst().getAsInt();
+        int temperature = random.ints(15, 45).findFirst().getAsInt();
         return new TemperatureTelemetry(id,temperature);
         /*
         int temperature = random.ints(15, 40).findFirst().getAsInt();
