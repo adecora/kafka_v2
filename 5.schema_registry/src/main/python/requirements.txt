@@ -1,4 +1,6 @@
 # requirements.txt
-confluent-kafka>=2.5.0
-fastavro>=1.9.0
-avro-python3>=1.10.2
+# confluent-kafka>=2.5.0
+# fastavro>=1.9.0
+# avro-python3>=1.10.2
+
+confluent-kafka[avro,schemaregistry]>=2.5.0,<3.0.0

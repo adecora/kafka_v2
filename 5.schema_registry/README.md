@@ -39,9 +39,9 @@ Podemos ver que por defecto el modo de compatibilidad para cualquier subject ser
 
 ### Registrar un schema
 
-Los schemas Avro se definen en formato JSON. Podéis consultar la especificación [aquí](https://avro.apache.org/docs/current/specification/). 
+Los schemas Avro se definen en formato JSON. Podéis consultar la especificación [aquí](https://avro.apache.org/docs/current/specification/).
 
-En este paso vamos a registrar el siguiente schema:  
+En este paso vamos a registrar el siguiente schema:
 
 ![til](./assets/schema_v1.jpg)
 
@@ -54,7 +54,7 @@ Algunos de los campos importantes del schema son:
 - **type**: tipo de datos. Avro admite tipos simples y tipos complejos
 
 ```bash
-jq '. | {schema: tojson}' ./src/main/avro/com.ucmmaster.kafka.data.v1.TemperatureTelemetry.avsc | curl -s -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" http://localhost:8081/subjects/temperature-telemetry-value/versions  -d @- | jq 
+jq '. | {schema: tojson}' ./src/main/avro/com.ucmmaster.kafka.data.v1.TemperatureTelemetry.avsc | curl -s -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" http://localhost:8081/subjects/temperature-telemetry-value/versions  -d @- | jq
  ```
 
 Obtendremos una respuesta como esta:
@@ -64,17 +64,21 @@ Obtendremos una respuesta como esta:
   "id": 1
 }
 ```
-La respuesta de la solicitud POST es el ID que Schema Registry asignó al nuevo esquema. 
+La respuesta de la solicitud POST es el ID que Schema Registry asignó al nuevo esquema.
 
-Schema Registry asigna un ID único (un número que aumenta de forma monótona y secuencial) a cada esquema agregado. 
+Schema Registry asigna un ID único (un número que aumenta de forma monótona y secuencial) a cada esquema agregado.
 
-Antes de continuar con otro endpoint, quiero destacar la parte de la URL relativa a subjects/temperature-telemetry-value/, que especifica el nombre del **subject** para el esquema. En este caso estamos siguiendo la estrategia **TopicNameStrategy** en la que el subject se nombre a partir del nombre del topic.
+Antes de continuar con otro endpoint, quiero destacar la parte de la URL relativa a subjects/temperature-telemetry-value/, que especifica el nombre del **subject** para el esquema. En este caso estamos siguiendo la estrategia **TopicNameStrategy** en la que el subject se nombra a partir del nombre del topic.
 
 Schema Registry usa el nombre del subject para gestionar el alcance de cualquier cambio/evolución realizado en un esquema.
 
-En este caso, el subject es temperature-telemetry **-value**. Esto quiere decir que los valores de los mensajes producidos en el topic **temperature-telemetry** deben seguir dicha estructura. 
+En este caso, el subject es temperature-telemetry **-value**. Esto quiere decir que los valores de los mensajes producidos en el topic **temperature-telemetry** deben seguir dicha estructura.
 
-Los subjects tienen un papel relevante en la gestión de cambios admitidos sobre un schema
+Los subjects tienen un papel relevante en la gestión de cambios admitidos sobre un schema.
+
+El cluster Kafka almacena los schemas en el topic **_schemas**.
+
+![Visualización topic _schemas](../.assets/topic-schemas.png)
 
 ### Listar subjects
 
@@ -177,7 +181,7 @@ Efectivamente el cambio es compatible
 He creado otra version del schema en la que el campo **humidity** es obligatorio. En este caso este tipo de cambio no está permitido y debería fallar
 
 ```bash
-jq '. | {schema: tojson}' ./src/main/avro/com.ucmmaster.kafka.data.v2.IncompatibleTemperatureTelemetry.avsc | curl -s -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" "http://localhost:8081/compatibility/subjects/temperature-telemetry-value/versions/latest?verbose=true"  -d @- | jq 
+jq '. | {schema: tojson}' ./src/main/avro/com.ucmmaster.kafka.data.v2.IncompatibleTemperatureTelemetry.avsc | curl -s -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" "http://localhost:8081/compatibility/subjects/temperature-telemetry-value/versions/latest?verbose=true"  -d @- | jq
 ```
 
 ```json
@@ -206,14 +210,14 @@ curl -s "http://localhost:8081/subjects/temperature-telemetry-value/versions/" |
 
 En el ámbito del desarrollo java/scala, se utilizan plugins y herramientas de compilación como maven/gradle/sbt para interactuar con Schema Registry.
 
-Generar código a partir del esquema facilita la vida de los desarrolladores, ya que automatiza el proceso repetitivo de crear clases que modelen esos objetos de dominio. 
+Generar código a partir del esquema facilita la vida de los desarrolladores, ya que automatiza el proceso repetitivo de crear clases que modelen esos objetos de dominio.
 
 Además, al mantener los esquemas en un sistema de control de versiones (como git), se reduce significativamente la posibilidad de errores, como definir un campo como string cuando debería ser long etc
 
 Asimismo, cuando se realiza un cambio en un esquema, simplemente se comparte el cambio en el repositorio, y otros desarrolladores pueden actualizar sus dependencias y estar al día de manera rápida y eficiente.
 
 Por favor, revisa la configuración en el fichero pom.xml de este proyecto
- 
+
 [Maven Plugin](https://docs.confluent.io/platform/current/schema-registry/develop/maven-plugin.html)
 
 ### Comprobar compatibilidad
@@ -228,14 +232,14 @@ Vamos a comprobar la compatibilidad BACKWARD de la nueva version del schema
 
 ```bash
 [INFO] Scanning for projects...
-[INFO] 
+[INFO]
 [INFO] -------------------< com.ucmmaster:schema-registry >--------------------
 [INFO] Building schema-registry 1.0
 [INFO]   from pom.xml
 [INFO] --------------------------------[ jar ]---------------------------------
-[INFO] 
+[INFO]
 [INFO] --- clean:3.2.0:clean (default-clean) @ schema-registry ---
-[INFO] 
+[INFO]
 [INFO] --- schema-registry:7.8.0:test-compatibility (default-cli) @ schema-registry ---
 [INFO] Schema /IdeaProjects/kafka-curso/7.schema_registry/src/main/avro/com.ucmmaster.kafka.data.v2.TemperatureTelemetry.avsc is compatible with subject(temperature-telemetry-value)
 [INFO] ------------------------------------------------------------------------
@@ -255,14 +259,14 @@ Vamos a registrar la nueva versión. El plugin se comunica igualmente con el API
 
 ```bash
 [INFO] Scanning for projects...
-[INFO] 
+[INFO]
 [INFO] -------------------< com.ucmmaster:schema-registry >--------------------
 [INFO] Building schema-registry 1.0
 [INFO]   from pom.xml
 [INFO] --------------------------------[ jar ]---------------------------------
-[INFO] 
+[INFO]
 [INFO] --- clean:3.2.0:clean (default-clean) @ schema-registry ---
-[INFO] 
+[INFO]
 [INFO] --- schema-registry:7.8.0:register (default-cli) @ schema-registry ---
 [INFO] Registered subject(temperature-telemetry-value) with id 2 version 2
 [INFO] ------------------------------------------------------------------------
@@ -271,7 +275,7 @@ Vamos a registrar la nueva versión. El plugin se comunica igualmente con el API
 [INFO] Total time:  0.547 s
 [INFO] ------------------------------------------------------------------------
 ```
-**Registered subject(temperature-telemetry-value) with id 2 version 2** 
+**Registered subject(temperature-telemetry-value) with id 2 version 2**
 
 Nos indica que se ha registrado correctamente y que el identificador interno del schema es el 2
 
@@ -333,7 +337,7 @@ En este caso el valor humidity ya viene informado en el mensaje, al incluirlo el
 ### CONSUMER V1
 
 En el modo de compatibilidad **BACKWARDS** debemos actualizar los consumidores a la ultima version para no perder información de los mensajes producidos en la última versión
-Vamos a consumir los mensajes con un consumidor con el schema v1 para que veamos como consumimos mensajes que llevan informado el valor del campo humidity y sin embargo no lo manejamos 
+Vamos a consumir los mensajes con un consumidor con el schema v1 para que veamos como consumimos mensajes que llevan informado el valor del campo humidity y sin embargo no lo manejamos
 
 ```bash
 python temperature_telemetry_v1_consumer.py
