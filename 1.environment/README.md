@@ -1,13 +1,13 @@
 
 # Entorno
 
-<img src="./assets/docker_compose_logo.png" alt="docker compose" width="200"/>
+<img src="assets/docker-compose.png" alt="docker compose" width="200"/>
 
 ## Descripción
 
-El entorno local se basa en un **docker compose** con los siguientes contenedores 
+El entorno local se basa en un **docker compose** con los siguientes contenedores
 
-```             
+```
 controller-1
 controller-2
 controller-3
@@ -19,12 +19,12 @@ control-center
 ksqldb-cli
 ksqldb-server
 schema-registry
-mysql     
+mysql
 ```
 
 ## Comandos
 
-Para utilizar el entorno utilizaremos comandos. Una vez dentro del directorio _**1.environment**_ 
+Para utilizar el entorno utilizaremos comandos. Una vez dentro del directorio _**1.environment**_
 
 * arrancar el entorno:
 
@@ -52,4 +52,4 @@ docker compose down -v --remove-orphans
 * ksqlDB: http://localhost:8088
 
 
-> ⚠️ **NOTA**<br/>El estado de los contenedores no se persiste. Esto quiere decir que el estado y los datos en nuestro cluster se perderán una vez lo paremos 
+> ⚠️ **NOTA**<br/>El estado de los contenedores no se persiste. Esto quiere decir que el estado y los datos en nuestro cluster se perderán una vez lo paremos

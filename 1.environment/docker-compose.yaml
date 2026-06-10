@@ -1,4 +1,40 @@
+# =============================================================================
+# Entorno de laboratorio Confluent Platform sobre Apache Kafka (modo KRaft)
+#
+# Arquitectura:
+#   - 3 controladores KRaft  : gestionan los metadatos del clúster (sin ZooKeeper)
+#   - 3 brokers Kafka        : almacenan y sirven los mensajes
+#   - Schema Registry        : registro centralizado de esquemas Avro/Protobuf/JSON
+#   - Kafka Connect          : integración con sistemas externos (MySQL, MongoDB…)
+#   - Control Center         : interfaz web de monitorización (http://localhost:9021)
+#   - ksqlDB Server + CLI    : motor de stream-processing con sintaxis SQL
+#   - MySQL 8.3              : base de datos relacional (fuente CDC via Debezium)
+#   - MongoDB 8.0            : base de datos NoSQL (destino/fuente para Connect)
+#
+# Los controladores usan los id de nodo 1-3 y los brokers 4-6 para evitar conflictos.
+#
+# Variables de entorno requeridas (fichero .env):
+#   TAG        -> versión de la imagen Confluent, p.ej. 7.6.1
+#   CLUSTER_ID -> UUID del clúster KRaft generado con: kafka-storage random-uuid
+# =============================================================================
+
+
 services:
+
+  # ---------------------------------------------------------------------------
+  # CAPA 1 — CONTROLADORES KRaft (quórum de metadatos)
+  #
+  # En modo KRaft los controladores reemplazan a ZooKeeper. Forman un quórum
+  # Raft de 3 nodos (toleran 1 fallo) y gestionan: asignación de particiones,
+  # elección de líder, cambios de configuración y registro de brokers.
+  #
+  # Cada controlador expone:
+  #   - Puerto CONTROLLER  (909X) → comunicación interna del quórum Raft
+  #   - Puerto JMX         (910X) → métricas JMX para herramientas de monitoreo
+  #
+  # KAFKA_CONTROLLER_QUORUM_VOTERS lista todos los votantes del quórum con el
+  # formato <nodeId>@<host>:<puerto>. Debe ser idéntica en todos los nodos.
+  # ---------------------------------------------------------------------------
 
   controller-1:
     image: confluentinc/cp-kafka:${TAG}
@@ -15,12 +51,16 @@ services:
       KAFKA_JMX_PORT: 9105
       KAFKA_JMX_HOSTNAME: localhost
       KAFKA_PROCESS_ROLES: 'controller'
+      # Lista completa de votantes del quórum: <id>@<host>:<puerto>
       KAFKA_CONTROLLER_QUORUM_VOTERS: '1@controller-1:9095,2@controller-2:9096,3@controller-3:9097'
       KAFKA_LISTENERS: 'CONTROLLER://controller-1:9095'
       KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
-      KAFKA_LOG_DIRS: '/tmp/kraft-controller-logs'     
+      KAFKA_LOG_DIRS: '/tmp/kraft-controller-logs'
       CLUSTER_ID: ${CLUSTER_ID}
+    networks:
+      - kafka-net
+
   controller-2:
     image: confluentinc/cp-kafka:${TAG}
     hostname: controller-2
@@ -42,6 +82,9 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
       KAFKA_LOG_DIRS: '/tmp/kraft-controller-logs'
       CLUSTER_ID: ${CLUSTER_ID}
+    networks:
+      - kafka-net
+
   controller-3:
     image: confluentinc/cp-kafka:${TAG}
     hostname: controller-3
@@ -63,6 +106,20 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
       KAFKA_LOG_DIRS: '/tmp/kraft-controller-logs'
       CLUSTER_ID: ${CLUSTER_ID}
+    networks:
+      - kafka-net
+
+  # ---------------------------------------------------------------------------
+  # CAPA 2 — BROKERS KAFKA (almacenamiento y distribución de mensajes)
+  #
+  # Define los brokers, los nodos que realmente almacenan los topics y sirven las
+  # peticiones de productores y consumidores. Cada broker tiene DOS listeners:
+  #
+  #   PLAINTEXT://broker-X:2909X  -> comunicación interna entre servicios Docker
+  #   PLAINTEXT_HOST://0.0.0.0:909X -> acceso externo desde el host (localhost)
+  #
+  # ---------------------------------------------------------------------------
+
   broker-1:
     image: confluentinc/cp-kafka:${TAG}
     hostname: broker-1
@@ -91,6 +148,9 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
       KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
       CLUSTER_ID: ${CLUSTER_ID}
+    networks:
+      - kafka-net
+
   broker-2:
     image: confluentinc/cp-kafka:${TAG}
     hostname: broker-2
@@ -119,6 +179,9 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
       KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
       CLUSTER_ID: ${CLUSTER_ID}
+    networks:
+      - kafka-net
+
   broker-3:
     image: confluentinc/cp-kafka:${TAG}
     hostname: broker-3
@@ -147,7 +210,21 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
       KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
       CLUSTER_ID: ${CLUSTER_ID}
-  schema-registry: 
+    networks:
+      - kafka-net
+
+  # ---------------------------------------------------------------------------
+  # CAPA 3 — SCHEMA REGISTRY (registro de esquemas)
+  #
+  # Servicio centralizado que almacena versiones de esquemas Avro, Protobuf y
+  # JSON Schema. Los productores y consumidores los consultan para serializar
+  # y deserializar mensajes de forma compatible.
+  #
+  # Kafka Connect y ksqlDB lo usan cuando el conversor de valor es AvroConverter.
+  # Endpoint de gestión: http://localhost:8081
+  # ---------------------------------------------------------------------------
+
+  schema-registry:
     image: confluentinc/cp-schema-registry:${TAG}
     hostname: schema-registry
     container_name: schema-registry
@@ -159,11 +236,24 @@ services:
       - controller-2
       - controller-3
     ports:
-      - "8081:8081"
+      - "8081:8081"  # REST API para registrar/consultar esquemas
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      # Brokers donde Schema Registry almacena sus propios topics internos
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker-1:29092,broker-2:29093,broker-3:29094'
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    networks:
+      - kafka-net
+
+  # ---------------------------------------------------------------------------
+  # CAPA 4 — KAFKA CONNECT (integración con sistemas externos)
+  #
+  # Framework distribuido para mover datos entre Kafka y otros sistemas usando
+  # conectores (source / sink).
+  #
+  # REST API: http://localhost:8083
+  # Los plugins adicionales se instalan vía install-connect-plugins.sh.
+  # ---------------------------------------------------------------------------
 
   connect:
     image: confluentinc/cp-kafka-connect:${TAG}
@@ -178,19 +268,29 @@ services:
       - controller-3
       - schema-registry
     ports:
-      - "8083:8083"
+      - "8083:8083"  # REST API para gestionar conectores (CRUD de connectors)
     environment:
+      # Brokers a los que Connect se conecta para leer/escribir sus topics internos
       CONNECT_BOOTSTRAP_SERVERS: broker-1:29092,broker-2:29093,broker-3:29094
       CONNECT_REST_ADVERTISED_HOST_NAME: connect
       CONNECT_GROUP_ID: compose-connect-group
+
+      # Topic donde se persiste la configuración de los conectores
       CONNECT_CONFIG_STORAGE_TOPIC: docker-connect-configs
       CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+
+      # Topic donde se persisten los offsets de los conectores (progreso de lectura)
       CONNECT_OFFSET_FLUSH_INTERVAL_MS: 10000
       CONNECT_OFFSET_STORAGE_TOPIC: docker-connect-offsets
       CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+
+      # Topic donde se persiste el estado de las tareas (running, failed…)
       CONNECT_STATUS_STORAGE_TOPIC: docker-connect-status
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+
+      # Conversor de clave: StringConverter (sin esquema)
       CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      # Conversor de valor: Avro, valida y versiona el esquema automáticamente
       CONNECT_VALUE_CONVERTER: io.confluent.connect.avro.AvroConverter
       CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE : true
       CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: http://schema-registry:8081
@@ -198,8 +298,24 @@ services:
       CLASSPATH: /usr/share/java/monitoring-interceptors/monitoring-interceptors-${TAG}.jar
       CONNECT_PRODUCER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor"
       CONNECT_CONSUMER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor"
+
+      # Rutas donde Kafka Connect busca plugins (JARs de conectores)
       CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
+      # Reducir ruido de logs de librerías de terceros
       CONNECT_LOG4J_LOGGERS: org.apache.zookeeper=ERROR,org.I0Itec.zkclient=ERROR,org.reflections=ERROR
+    networks:
+      - kafka-net
+
+  # ---------------------------------------------------------------------------
+  # CAPA 5 — CONTROL CENTER (interfaz web de administración)
+  #
+  # UI de Confluent para monitorizar brokers, topics, consumidores,
+  # conectores y streams ksqlDB.
+  #
+  # Acceso: http://localhost:9021
+  #
+  # ---------------------------------------------------------------------------
+
   control-center:
     image: confluentinc/cp-enterprise-control-center:${TAG}
     hostname: control-center
@@ -229,6 +345,20 @@ services:
       CONFLUENT_METRICS_TOPIC_REPLICATION: 1
 
       PORT: 9021
+    networks:
+      - kafka-net
+
+  # ---------------------------------------------------------------------------
+  # CAPA 6 — ksqlDB SERVER (stream processing con SQL)
+  #
+  # Motor que permite crear streams y tablas sobre topics Kafka usando sentencias
+  # SQL familiares (CREATE STREAM, SELECT, JOIN, GROUP BY…). Internamente
+  # usa Kafka Streams como motor de ejecución.
+  #
+  # Los interceptores de monitoreo integran las métricas en el Control Center.
+  # REST API: http://localhost:8088
+  # ---------------------------------------------------------------------------
+
   ksqldb-server:
     image: confluentinc/cp-ksqldb-server:${TAG}
     hostname: ksqldb-server
@@ -248,14 +378,27 @@ services:
       KSQL_BOOTSTRAP_SERVERS: broker-1:29092,broker-2:29093,broker-3:29094
       KSQL_HOST_NAME: ksqldb-server
       KSQL_LISTENERS: "http://0.0.0.0:8088"
-      KSQL_CACHE_MAX_BYTES_BUFFERING: 0
+      KSQL_CACHE_MAX_BYTES_BUFFERING: 0                         # Sin buffering (dev: resultados inmediatos)
       KSQL_KSQL_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
       KSQL_PRODUCER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor"
       KSQL_CONSUMER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor"
-      KSQL_KSQL_CONNECT_URL: "http://connect:8083"
+      KSQL_KSQL_CONNECT_URL: "http://connect:8083"              # Integración con Kafka Connect
       KSQL_KSQL_LOGGING_PROCESSING_TOPIC_REPLICATION_FACTOR: 1
       KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: 'true'
       KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: 'true'
+    networks:
+      - kafka-net
+
+  # ---------------------------------------------------------------------------
+  # CAPA 7 — ksqlDB CLI (cliente interactivo de línea de comandos)
+  #
+  # Contenedor con el CLI de ksqlDB. No expone puertos; se conecta al server
+  # via red interna Docker. Para acceder:
+  #
+  #   docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
+  #
+  # tty: true + entrypoint: /bin/sh mantiene el contenedor vivo para exec.
+  # ---------------------------------------------------------------------------
 
   ksqldb-cli:
     image: confluentinc/cp-ksqldb-cli:${TAG}
@@ -271,19 +414,45 @@ services:
       - ksqldb-server
     entrypoint: /bin/sh
     tty: true
+    networks:
+      - kafka-net
+
+  # ---------------------------------------------------------------------------
+  # CAPA 8 — MySQL 8.3 (base de datos relacional — fuente CDC)
+  #
+  # Usada como fuente de datos para Change Data Capture (CDC) con el conector
+  # Debezium MySQL Source. El script init.sql crea las tablas iniciales y
+  # habilita el binlog (requerido por Debezium).
+  #
+  # MYSQL_ROOT_HOST: 172.% permite conexiones desde la red Docker (172.x.x.x).
+  # Credenciales de desarrollo: user/password — NO usar en producción.
+  # ---------------------------------------------------------------------------
 
   mysql:
     image: mysql:8.3
     hostname: mysql
     container_name: mysql
     volumes:
-      - $PWD/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      # Script de inicialización ejecutado al crear el contenedor por primera vez
+      - $PWD/mysql/0-init.sql:/docker-entrypoint-initdb.d/0-init.sql
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: db
       MYSQL_USER: user
       MYSQL_PASSWORD: password
       MYSQL_ROOT_HOST: 172.%
+    networks:
+      - kafka-net
+
+  # ---------------------------------------------------------------------------
+  # CAPA 9 — MongoDB 8.0 (base de datos NoSQL — destino/fuente Connect)
+  #
+  # Usada como destino de datos desde Kafka Connect (MongoDB Sink Connector)
+  # o como fuente (MongoDB Source Connector).
+  #
+  # "--quiet --logpath /dev/null" suprime los logs verbosos de MongoDB en
+  # entornos de laboratorio (no recomendado en producción).
+  # ---------------------------------------------------------------------------
 
   mongodb:
     image: mongo:8.0
@@ -295,4 +464,18 @@ services:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: secret123
       MONGO_INITDB_DATABASE: course
-    command: [ "--quiet", "--logpath", "/dev/null" ]
+    command: [ "--quiet", "--logpath", "/dev/null" ]   # Silencia los logs de MongoDB
+    networks:
+      - kafka-net
+
+# -----------------------------------------------------------------------------
+# Red Docker dedicada: kafka-net
+#
+# -----------------------------------------------------------------------------
+
+networks:
+  kafka-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

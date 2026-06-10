@@ -2,7 +2,7 @@ package com.ucmmaster.kafka.simple;
 
 import java.util.Random;
 
-class TemperatureTelemetry {
+public class TemperatureTelemetry {
 
     private static final Random RANDOM = new Random();
 

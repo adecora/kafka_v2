@@ -4,6 +4,8 @@
 
 Asimilar los conceptos mediante el uso de distintas herramientas de consola disponibles por defecto en cualquier distribución **Kafka**
 
+Ver: [Kafka Command-Line Interface (CLI) Tools](https://docs.confluent.io/kafka/operations-tools/kafka-tools.html#)
+
 ## Práctica
 
 Lo primero que tenemos que hacer es habilitar una **consola interactiva** dentro de uno de los contenedores brokers de nuestro cluster
@@ -61,6 +63,10 @@ kafka-topics --bootstrap-server broker-1:29092 --list
 #### Creación de un topic
 
 En este caso, vamos a crear un topic llamado **my-topic** con 4 particiones, factor de replicación 2 y personalizando un par de propiedades (message.max.bytes y flush.messages=1)
+
+> **NOTA**:
+>
+> **flush.messages [(Ver doc):](https://docs.confluent.io/platform/current/installation/configuration/topic-configs.html#flush-messages)** Fuerza la escritura en disco al log después de cada mensaje.
 
 ```bash
 kafka-topics --bootstrap-server broker-1:29092 --create --topic my-topic --partitions 4 --replication-factor 2 --config max.message.bytes=64000 --config flush.messages=1
@@ -171,3 +177,229 @@ kafka-console-consumer --bootstrap-server broker-1:29092 --topic temperature-tel
 Observad el rebalanceo y particionado que se produce mediante la partition key elegida.
 
 > ❗️ **NOTA**<br/>Para detener una aplicación de consola debemos pulsar **Ctrl+C**
+
+
+#### Inspeccionar los log en disco
+
+Inspecionamos como los `.log` de la **partición-0**, para ver como Kafka escribe los mensajes en disco, en este caso serializados como string.
+
+![Primer mensaje escrito en la particion-0](../.assets/inspect-log-0.png)
+
+LLega el segundo mensaje.
+
+![Segundo mensaje escrito en la particion-0](../.assets/inspect-log-1.png)
+
+¿Qúe escribe Kafka en los `.log`? Descripción de un registro:
+
+```
+baseOffset del batch
+--------------------
+00 00 00 00 00 00 00 00
+=> baseOffset = 0
+
+
+record
+------
+26        record length
+          varint = 0x26 = 38 decimal
+          ZigZag decode:
+            (38 >>> 1) ^ -(38 & 1)
+            19 ^ 0
+            19
+          => 19 bytes
+
+00        attributes
+          byte normal, no ZigZag
+          => 0
+
+00        timestamp delta
+          varlong ZigZag
+          varint = 0x00 = 0 decimal
+          ZigZag decode:
+            (0 >>> 1) ^ -(0 & 1)
+            0 ^ 0
+            0
+          => timestampDelta = 0
+
+00        offset delta
+          varint ZigZag
+          varint = 0x00 = 0 decimal
+          ZigZag decode:
+            (0 >>> 1) ^ -(0 & 1)
+            0 ^ 0
+            0
+          => offsetDelta = 0
+
+          offset absoluto:
+            baseOffset + offsetDelta
+            0 + 0
+            0
+
+          => offset absoluto del mensaje = 0
+
+02        key length
+          varint ZigZag
+          varint = 0x02 = 2 decimal
+          ZigZag decode:
+            (2 >>> 1) ^ -(2 & 1)
+            1 ^ 0
+            1
+          => key length = 1 byte
+
+32        key
+          ASCII 0x32 = "2"
+          => key = "2"
+
+18        value length
+          varint ZigZag
+          varint = 0x18 = 24 decimal
+          ZigZag decode:
+            (24 >>> 1) ^ -(24 & 1)
+            12 ^ 0
+            12
+          => value length = 12 bytes
+
+20 48 65 6c 6c 6f 20 57 6f 72 6c 64
+          value
+          ASCII:
+            20 = espacio
+            48 = H
+            65 = e
+            6c = l
+            6c = l
+            6f = o
+            20 = espacio
+            57 = W
+            6f = o
+            72 = r
+            6c = l
+            64 = d
+          => value = " Hello World"
+
+00        headers count
+          varint
+          => 0 headers
+```
+
+```
+baseOffset del batch
+--------------------
+00 00 00 00 00 00 00 01
+=> baseOffset = 1
+
+
+record
+------
+64        record length
+          varint = 0x64 = 100 decimal
+          ZigZag decode:
+            (100 >>> 1) ^ -(100 & 1)
+            50 ^ 0
+            50
+          => 50 bytes
+
+00        attributes
+          byte normal, no ZigZag
+          => 0
+
+00        timestamp delta
+          varlong ZigZag
+          varint = 0x00 = 0 decimal
+          ZigZag decode:
+            (0 >>> 1) ^ -(0 & 1)
+            0 ^ 0
+            0
+          => timestampDelta = 0
+
+00        offset delta
+          varint ZigZag
+          varint = 0x00 = 0 decimal
+          ZigZag decode:
+            (0 >>> 1) ^ -(0 & 1)
+            0 ^ 0
+            0
+          => offsetDelta = 0
+
+          offset absoluto:
+            baseOffset + offsetDelta
+            1 + 0
+            1
+
+          => offset absoluto del mensaje = 1
+
+02        key length
+          varint ZigZag
+          varint = 0x02 = 2 decimal
+          ZigZag decode:
+            (2 >>> 1) ^ -(2 & 1)
+            1 ^ 0
+            1
+          => key length = 1 byte
+
+32        key
+          ASCII 0x32 = "2"
+          => key = "2"
+
+56        value length
+          varint ZigZag
+          varint = 0x56 = 86 decimal
+          ZigZag decode:
+            (86 >>> 1) ^ -(86 & 1)
+            43 ^ 0
+            43
+          => value length = 43 bytes
+
+20 45 73 74 65 20 73 69 20 65 6c 20 6e 75 65 76
+6f 20 6d 65 6e 73 61 6a 65 20 65 6e 20 6c 61 20
+70 61 72 74 69 63 69 6f 6e 20 30
+          value
+          ASCII:
+            20 = espacio
+            45 = E
+            73 = s
+            74 = t
+            65 = e
+            20 = espacio
+            73 = s
+            69 = i
+            20 = espacio
+            65 = e
+            6c = l
+            20 = espacio
+            6e = n
+            75 = u
+            65 = e
+            76 = v
+            6f = o
+            20 = espacio
+            6d = m
+            65 = e
+            6e = n
+            73 = s
+            61 = a
+            6a = j
+            65 = e
+            20 = espacio
+            65 = e
+            6e = n
+            20 = espacio
+            6c = l
+            61 = a
+            20 = espacio
+            70 = p
+            61 = a
+            72 = r
+            74 = t
+            69 = i
+            63 = c
+            69 = i
+            6f = o
+            6e = n
+            20 = espacio
+            30 = 0
+          => value = " Este si el nuevo mensaje en la particion 0"
+
+00        headers count
+          varint
+          => 0 headers
+```

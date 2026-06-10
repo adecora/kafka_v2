@@ -1,0 +1,243 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 5,
+  "metadata": {
+    "language_info": {
+      "name": "java"
+    }
+  },
+  "cells": [
+    {
+      "id": "cfaf82a8-6fbc-4bca-8c27-05838850989c",
+      "cell_type": "markdown",
+      "source": "# Algunas notas",
+      "metadata": {
+        "language": "markdown",
+        "id": "cfaf82a8-6fbc-4bca-8c27-05838850989c"
+      }
+    },
+    {
+      "id": "5d7cf193-f8d8-4221-aded-aa591320de45",
+      "cell_type": "code",
+      "source": "import com.ucmmaster.kafka.simple.*;\nimport org.apache.kafka.clients.producer.KafkaProducer;\nimport org.apache.kafka.clients.producer.ProducerRecord;",
+      "metadata": {
+        "language": "java",
+        "id": "5d7cf193-f8d8-4221-aded-aa591320de45",
+        "executionSummary": {
+          "executionOrder": 12,
+          "success": true
+        }
+      },
+      "execution_count": 12,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {},
+          "metadata": {},
+          "execution_count": 12
+        }
+      ]
+    },
+    {
+      "id": "59e785dd-0366-4a7b-9c6e-82297d45eec9",
+      "cell_type": "markdown",
+      "source": "Generando `random` values con Java.",
+      "metadata": {
+        "language": "markdown",
+        "id": "59e785dd-0366-4a7b-9c6e-82297d45eec9"
+      }
+    },
+    {
+      "id": "cb2d8bc6-4dba-4186-84e2-40164e9d792b",
+      "cell_type": "code",
+      "source": "final Random random = new Random(42);\n\n// random.ints(origin, bound) devuelve un IntStream INFINITO [1, 10)\n// Para convertir a array hay que limitarlo primero\nint[] arr = random.ints(1, 10)\n                  .limit(5)\n                  .toArray();\n\nSystem.out.println(java.util.Arrays.toString(arr));\n",
+      "metadata": {
+        "language": "java",
+        "id": "cb2d8bc6-4dba-4186-84e2-40164e9d792b",
+        "executionSummary": {
+          "executionOrder": 2,
+          "success": true
+        }
+      },
+      "execution_count": 2,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": "[9, 4, 1, 9, 1]\n"
+          },
+          "metadata": {},
+          "execution_count": 2
+        }
+      ]
+    },
+    {
+      "id": "11f914c9-ef27-4fee-b259-9a55f29820da",
+      "cell_type": "markdown",
+      "source": "Probamos los valores generados por `TemperatureTelemetry`, antes hay que modificar la clase para hacerla pública y poder acceder aquí.",
+      "metadata": {
+        "language": "markdown",
+        "id": "11f914c9-ef27-4fee-b259-9a55f29820da"
+      }
+    },
+    {
+      "id": "3176dca9-914c-428a-9c17-e481f1654319",
+      "cell_type": "code",
+      "source": "TemperatureTelemetry telemetry_read;\n\nfor (int i = 0; i < 5; i++) {\n    telemetry_read = TemperatureTelemetry.newRandomTemperatureRead();\n    System.out.println(telemetry_read.toString());\n}",
+      "metadata": {
+        "language": "java",
+        "id": "3176dca9-914c-428a-9c17-e481f1654319",
+        "executionSummary": {
+          "executionOrder": 13,
+          "success": true
+        }
+      },
+      "execution_count": 13,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": "{\"id\":2, \"temperature\":38}\n{\"id\":5, \"temperature\":29}\n{\"id\":6, \"temperature\":23}\n{\"id\":6, \"temperature\":22}\n{\"id\":1, \"temperature\":19}\n"
+          },
+          "metadata": {},
+          "execution_count": 13
+        }
+      ]
+    },
+    {
+      "id": "87b28935-4902-439c-8a1d-89f9efe511ea",
+      "cell_type": "code",
+      "source": "var path = java.nio.file.Path.of(\"src/main/resources/simple-client.properties\");\nvar props = new java.util.Properties();\ntry (var input = java.nio.file.Files.newInputStream(path)) {\n    props.load(input);\n}\nSystem.out.println(props);",
+      "metadata": {
+        "language": "java",
+        "id": "87b28935-4902-439c-8a1d-89f9efe511ea",
+        "executionSummary": {
+          "executionOrder": 8,
+          "success": true
+        }
+      },
+      "execution_count": 8,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": "{key.deserializer=org.apache.kafka.common.serialization.StringDeserializer, value.deserializer=org.apache.kafka.common.serialization.StringDeserializer, auto.create.topics.enable=false, acks=all, group.id=java-group, bootstrap.servers=127.0.0.1:9092,127.0.0.1:9093,127.0.0.1:9094, key.serializer=org.apache.kafka.common.serialization.StringSerializer, topic.creation.enable=false, value.serializer=org.apache.kafka.common.serialization.StringSerializer, partitioner.class=org.apache.kafka.clients.producer.RoundRobinPartitioner, api.version.request=false, auto.offset.reset=earliest}\n"
+          },
+          "metadata": {},
+          "execution_count": 8
+        }
+      ]
+    },
+    {
+      "id": "c59eac39-02ae-4cab-ad20-eb32cb0c151a",
+      "cell_type": "code",
+      "source": "telemetry_read = new TemperatureTelemetry(1, 30);\n\nSystem.out.println(telemetry_read.toString());",
+      "metadata": {
+        "language": "java",
+        "executionSummary": {
+          "executionOrder": 17,
+          "success": true
+        }
+      },
+      "execution_count": 17,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": "{\"id\":1, \"temperature\":25}\n"
+          },
+          "metadata": {},
+          "execution_count": 17
+        }
+      ]
+    },
+    {
+      "id": "1e76d448-28d5-436f-95e8-8d8f87cff58d",
+      "cell_type": "markdown",
+      "source": "Fakeamos la recogida de la `{\"id\":1, \"temperature\":30}` en el topic `temperature-telemetry`.",
+      "metadata": {
+        "language": "markdown",
+        "id": "1e76d448-28d5-436f-95e8-8d8f87cff58d"
+      }
+    },
+    {
+      "id": "b95f539f-8dd5-4469-83dd-328b35ad404e",
+      "cell_type": "code",
+      "source": "KafkaProducer<String, String> producer = new KafkaProducer<>(props);\n\ntelemetry_read = new TemperatureTelemetry(1, 30);\n\nProducerRecord<String, String> record = new ProducerRecord<>(\n    \"my-topic\",\n    String.valueOf(telemetry_read.getId()),\n    telemetry_read.toString());\n\nrecord.headers().add(\"client\",\"Boas desde java\".getBytes(StandardCharsets.UTF_8));\n\nproducer.send(record, (metadata, exception) -> {\n    if (exception != null) {\n        System.err.println(\"Error al enviar el mensaje: \" + exception.getMessage());\n    } else {\n        System.out.println(\"Mensaje key \" + record.key() + \", value '\" + record.value() + \"' enviado a la partición \" + metadata.partition() + \" con offset \" + metadata.offset());\n    }\n});",
+      "metadata": {
+        "language": "java",
+        "id": "b95f539f-8dd5-4469-83dd-328b35ad404e",
+        "executionSummary": {
+          "executionOrder": 18,
+          "success": true
+        }
+      },
+      "execution_count": 18,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": "2026-06-10 19:19:52 [main] INFO  org.apache.kafka.clients.producer.ProducerConfig - ProducerConfig values: \n\tacks = -1\n\tauto.include.jmx.reporter = true\n\tbatch.size = 16384\n\tbootstrap.servers = [127.0.0.1:9092, 127.0.0.1:9093, 127.0.0.1:9094]\n\tbuffer.memory = 33554432\n\tclient.dns.lookup = use_all_dns_ips\n\tclient.id = producer-2\n\tcompression.gzip.level = -1\n\tcompression.lz4.level = 9\n\tcompression.type = none\n\tcompression.zstd.level = 3\n\tconnections.max.idle.ms = 540000\n\tdelivery.timeout.ms = 120000\n\tenable.idempotence = true\n\tenable.metrics.push = true\n\tinterceptor.classes = []\n\tkey.serializer = class org.apache.kafka.common.serialization.StringSerializer\n\tlinger.ms = 0\n\tmax.block.ms = 60000\n\tmax.in.flight.requests.per.connection = 5\n\tmax.request.size = 1048576\n\tmetadata.max.age.ms = 300000\n\tmetadata.max.idle.ms = 300000\n\tmetadata.recovery.strategy = none\n\tmetric.reporters = []\n\tmetrics.num.samples = 2\n\tmetrics.recording.level = INFO\n\tmetrics.sample.window.ms = 30000\n\tpartitioner.adaptive.partitioning.enable = true\n\tpartitioner.availability.timeout.ms = 0\n\tpartitioner.class = class org.apache.kafka.clients.producer.RoundRobinPartitioner\n\tpartitioner.ignore.keys = false\n\treceive.buffer.bytes = 32768\n\treconnect.backoff.max.ms = 1000\n\treconnect.backoff.ms = 50\n\trequest.timeout.ms = 30000\n\tretries = 2147483647\n\tretry.backoff.max.ms = 1000\n\tretry.backoff.ms = 100\n\tsasl.client.callback.handler.class = null\n\tsasl.jaas.config = null\n\tsasl.kerberos.kinit.cmd = /usr/bin/kinit\n\tsasl.kerberos.min.time.before.relogin = 60000\n\tsasl.kerberos.service.name = null\n\tsasl.kerberos.ticket.renew.jitter = 0.05\n\tsasl.kerberos.ticket.renew.window.factor = 0.8\n\tsasl.login.callback.handler.class = null\n\tsasl.login.class = null\n\tsasl.login.connect.timeout.ms = null\n\tsasl.login.read.timeout.ms = null\n\tsasl.login.refresh.buffer.seconds = 300\n\tsasl.login.refresh.min.period.seconds = 60\n\tsasl.login.refresh.window.factor = 0.8\n\tsasl.login.refresh.window.jitter = 0.05\n\tsasl.login.retry.backoff.max.ms = 10000\n\tsasl.login.retry.backoff.ms = 100\n\tsasl.mechanism = GSSAPI\n\tsasl.oauthbearer.clock.skew.seconds = 30\n\tsasl.oauthbearer.expected.audience = null\n\tsasl.oauthbearer.expected.issuer = null\n\tsasl.oauthbearer.jwks.endpoint.refresh.ms = 3600000\n\tsasl.oauthbearer.jwks.endpoint.retry.backoff.max.ms = 10000\n\tsasl.oauthbearer.jwks.endpoint.retry.backoff.ms = 100\n\tsasl.oauthbearer.jwks.endpoint.url = null\n\tsasl.oauthbearer.scope.claim.name = scope\n\tsasl.oauthbearer.sub.claim.name = sub\n\tsasl.oauthbearer.token.endpoint.url = null\n\tsecurity.protocol = PLAINTEXT\n\tsecurity.providers = null\n\tsend.buffer.bytes = 131072\n\tsocket.connection.setup.timeout.max.ms = 30000\n\tsocket.connection.setup.timeout.ms = 10000\n\tssl.cipher.suites = null\n\tssl.enabled.protocols = [TLSv1.2, TLSv1.3]\n\tssl.endpoint.identification.algorithm = https\n\tssl.engine.factory.class = null\n\tssl.key.password = null\n\tssl.keymanager.algorithm = SunX509\n\tssl.keystore.certificate.chain = null\n\tssl.keystore.key = null\n\tssl.keystore.location = null\n\tssl.keystore.password = null\n\tssl.keystore.type = JKS\n\tssl.protocol = TLSv1.3\n\tssl.provider = null\n\tssl.secure.random.implementation = null\n\tssl.trustmanager.algorithm = PKIX\n\tssl.truststore.certificates = null\n\tssl.truststore.location = null\n\tssl.truststore.password = null\n\tssl.truststore.type = JKS\n\ttransaction.timeout.ms = 60000\n\ttransactional.id = null\n\tvalue.serializer = class org.apache.kafka.common.serialization.StringSerializer\n\n2026-06-10 19:19:52 [main] INFO  org.apache.kafka.common.telemetry.internals.KafkaMetricsCollector - initializing Kafka metrics collector\n2026-06-10 19:19:52 [main] INFO  org.apache.kafka.clients.producer.KafkaProducer - [Producer clientId=producer-2] Instantiated an idempotent producer.\n2026-06-10 19:19:52 [main] INFO  org.apache.kafka.clients.producer.ProducerConfig - These configurations '[key.deserializer, topic.creation.enable, value.deserializer, auto.create.topics.enable, group.id, api.version.request, auto.offset.reset]' were supplied but are not used yet.\n2026-06-10 19:19:52 [main] INFO  org.apache.kafka.common.utils.AppInfoParser - Kafka version: 3.8.0\n2026-06-10 19:19:52 [main] INFO  org.apache.kafka.common.utils.AppInfoParser - Kafka commitId: 771b9576b00ecf5b\n2026-06-10 19:19:52 [main] INFO  org.apache.kafka.common.utils.AppInfoParser - Kafka startTimeMs: 1781111992054\n2026-06-10 19:19:52 [kafka-producer-network-thread | producer-2] INFO  org.apache.kafka.clients.Metadata - [Producer clientId=producer-2] Cluster ID: Nk018hRAQFytWskYqtQduw\n2026-06-10 19:19:52 [kafka-producer-network-thread | producer-2] INFO  org.apache.kafka.clients.producer.internals.TransactionManager - [Producer clientId=producer-2] ProducerId set to 3005 with epoch 0\nMensaje key 1, value '{\"id\":1, \"temperature\":30}' enviado a la partición 1 con offset 0\n"
+          },
+          "metadata": {},
+          "execution_count": 18
+        }
+      ]
+    },
+    {
+      "id": "4bdbcaf7-e236-482d-a8a6-3f63066616d5",
+      "cell_type": "markdown",
+      "source": "Testeamos el envío del mismo mensaje pero ahora con el schema de Avro.",
+      "metadata": {
+        "language": "markdown",
+        "id": "4bdbcaf7-e236-482d-a8a6-3f63066616d5"
+      }
+    },
+    {
+      "id": "f1176170-3a06-4772-9695-2909134c9c9b",
+      "cell_type": "code",
+      "source": "var path = java.nio.file.Path.of(\"src/main/resources/avro-client.properties\");\nvar props = new java.util.Properties();\ntry (var input = java.nio.file.Files.newInputStream(path)) {\n    props.load(input);\n}\nSystem.out.println(props);",
+      "metadata": {
+        "language": "java",
+        "executionSummary": {
+          "executionOrder": 27,
+          "success": true
+        }
+      },
+      "execution_count": 27,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": "{key.deserializer=org.apache.kafka.common.serialization.StringDeserializer, value.deserializer=io.confluent.kafka.serializers.KafkaAvroDeserializer, auto.create.topics.enable=true, acks=all, group.id=java-group, bootstrap.servers=127.0.0.1:9092,127.0.0.1:9093,127.0.0.1:9094, key.serializer=org.apache.kafka.common.serialization.StringSerializer, topic.creation.enable=false, schema.registry.url=http://localhost:8081, value.serializer=io.confluent.kafka.serializers.KafkaAvroSerializer, api.version.request=false, auto.offset.reset=earliest}\n"
+          },
+          "metadata": {},
+          "execution_count": 27
+        }
+      ]
+    },
+    {
+      "id": "58b04cdb-e069-4888-9763-8b386be03f85",
+      "cell_type": "code",
+      "source": "KafkaProducer<String, com.ucmmaster.kafka.data.v1.TemperatureTelemetry> producer = new KafkaProducer<>(props);\n\nvar telemetry_avro = new com.ucmmaster.kafka.data.v1.TemperatureTelemetry(1, 30);\n\nProducerRecord<String, com.ucmmaster.kafka.data.v1.TemperatureTelemetry> record = new ProducerRecord<>(\n    \"my-topic-avro\",\n    String.valueOf(telemetry_avro.getId()),\n    telemetry_avro);\n\nrecord.headers().add(\"client\",\"Boas desde java\".getBytes(StandardCharsets.UTF_8));\n\nproducer.send(record, (metadata, exception) -> {\n    if (exception != null) {\n        System.err.println(\"Error al enviar el mensaje: \" + exception.getMessage());\n    } else {\n        System.out.println(\"Mensaje key \" + record.key() + \", value '\" + record.value().toString() + \"' enviado a la partición \" + metadata.partition() + \" con offset \" + metadata.offset());\n    }\n});\n",
+      "metadata": {
+        "language": "java",
+        "executionSummary": {
+          "executionOrder": 28,
+          "success": true
+        }
+      },
+      "execution_count": 28,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": "2026-06-10 19:33:30 [main] INFO  org.apache.kafka.clients.producer.ProducerConfig - ProducerConfig values: \n\tacks = -1\n\tauto.include.jmx.reporter = true\n\tbatch.size = 16384\n\tbootstrap.servers = [127.0.0.1:9092, 127.0.0.1:9093, 127.0.0.1:9094]\n\tbuffer.memory = 33554432\n\tclient.dns.lookup = use_all_dns_ips\n\tclient.id = producer-5\n\tcompression.gzip.level = -1\n\tcompression.lz4.level = 9\n\tcompression.type = none\n\tcompression.zstd.level = 3\n\tconnections.max.idle.ms = 540000\n\tdelivery.timeout.ms = 120000\n\tenable.idempotence = true\n\tenable.metrics.push = true\n\tinterceptor.classes = []\n\tkey.serializer = class org.apache.kafka.common.serialization.StringSerializer\n\tlinger.ms = 0\n\tmax.block.ms = 60000\n\tmax.in.flight.requests.per.connection = 5\n\tmax.request.size = 1048576\n\tmetadata.max.age.ms = 300000\n\tmetadata.max.idle.ms = 300000\n\tmetadata.recovery.strategy = none\n\tmetric.reporters = []\n\tmetrics.num.samples = 2\n\tmetrics.recording.level = INFO\n\tmetrics.sample.window.ms = 30000\n\tpartitioner.adaptive.partitioning.enable = true\n\tpartitioner.availability.timeout.ms = 0\n\tpartitioner.class = null\n\tpartitioner.ignore.keys = false\n\treceive.buffer.bytes = 32768\n\treconnect.backoff.max.ms = 1000\n\treconnect.backoff.ms = 50\n\trequest.timeout.ms = 30000\n\tretries = 2147483647\n\tretry.backoff.max.ms = 1000\n\tretry.backoff.ms = 100\n\tsasl.client.callback.handler.class = null\n\tsasl.jaas.config = null\n\tsasl.kerberos.kinit.cmd = /usr/bin/kinit\n\tsasl.kerberos.min.time.before.relogin = 60000\n\tsasl.kerberos.service.name = null\n\tsasl.kerberos.ticket.renew.jitter = 0.05\n\tsasl.kerberos.ticket.renew.window.factor = 0.8\n\tsasl.login.callback.handler.class = null\n\tsasl.login.class = null\n\tsasl.login.connect.timeout.ms = null\n\tsasl.login.read.timeout.ms = null\n\tsasl.login.refresh.buffer.seconds = 300\n\tsasl.login.refresh.min.period.seconds = 60\n\tsasl.login.refresh.window.factor = 0.8\n\tsasl.login.refresh.window.jitter = 0.05\n\tsasl.login.retry.backoff.max.ms = 10000\n\tsasl.login.retry.backoff.ms = 100\n\tsasl.mechanism = GSSAPI\n\tsasl.oauthbearer.clock.skew.seconds = 30\n\tsasl.oauthbearer.expected.audience = null\n\tsasl.oauthbearer.expected.issuer = null\n\tsasl.oauthbearer.jwks.endpoint.refresh.ms = 3600000\n\tsasl.oauthbearer.jwks.endpoint.retry.backoff.max.ms = 10000\n\tsasl.oauthbearer.jwks.endpoint.retry.backoff.ms = 100\n\tsasl.oauthbearer.jwks.endpoint.url = null\n\tsasl.oauthbearer.scope.claim.name = scope\n\tsasl.oauthbearer.sub.claim.name = sub\n\tsasl.oauthbearer.token.endpoint.url = null\n\tsecurity.protocol = PLAINTEXT\n\tsecurity.providers = null\n\tsend.buffer.bytes = 131072\n\tsocket.connection.setup.timeout.max.ms = 30000\n\tsocket.connection.setup.timeout.ms = 10000\n\tssl.cipher.suites = null\n\tssl.enabled.protocols = [TLSv1.2, TLSv1.3]\n\tssl.endpoint.identification.algorithm = https\n\tssl.engine.factory.class = null\n\tssl.key.password = null\n\tssl.keymanager.algorithm = SunX509\n\tssl.keystore.certificate.chain = null\n\tssl.keystore.key = null\n\tssl.keystore.location = null\n\tssl.keystore.password = null\n\tssl.keystore.type = JKS\n\tssl.protocol = TLSv1.3\n\tssl.provider = null\n\tssl.secure.random.implementation = null\n\tssl.trustmanager.algorithm = PKIX\n\tssl.truststore.certificates = null\n\tssl.truststore.location = null\n\tssl.truststore.password = null\n\tssl.truststore.type = JKS\n\ttransaction.timeout.ms = 60000\n\ttransactional.id = null\n\tvalue.serializer = class io.confluent.kafka.serializers.KafkaAvroSerializer\n\n2026-06-10 19:33:30 [main] INFO  org.apache.kafka.common.telemetry.internals.KafkaMetricsCollector - initializing Kafka metrics collector\n2026-06-10 19:33:30 [main] INFO  io.confluent.kafka.serializers.KafkaAvroSerializerConfig - KafkaAvroSerializerConfig values: \n\tauto.register.schemas = true\n\tavro.reflection.allow.null = false\n\tavro.remove.java.properties = false\n\tavro.use.logical.type.converters = false\n\tbasic.auth.credentials.source = URL\n\tbasic.auth.user.info = [hidden]\n\tbearer.auth.cache.expiry.buffer.seconds = 300\n\tbearer.auth.client.id = null\n\tbearer.auth.client.secret = null\n\tbearer.auth.credentials.source = STATIC_TOKEN\n\tbearer.auth.custom.provider.class = null\n\tbearer.auth.identity.pool.id = null\n\tbearer.auth.issuer.endpoint.url = null\n\tbearer.auth.logical.cluster = null\n\tbearer.auth.scope = null\n\tbearer.auth.scope.claim.name = scope\n\tbearer.auth.sub.claim.name = sub\n\tbearer.auth.token = [hidden]\n\tcontext.name.strategy = class io.confluent.kafka.serializers.context.NullContextNameStrategy\n\thttp.connect.timeout.ms = 60000\n\thttp.read.timeout.ms = 60000\n\tid.compatibility.strict = true\n\tkey.subject.name.strategy = class io.confluent.kafka.serializers.subject.TopicNameStrategy\n\tlatest.cache.size = 1000\n\tlatest.cache.ttl.sec = -1\n\tlatest.compatibility.strict = true\n\tmax.schemas.per.subject = 1000\n\tnormalize.schemas = false\n\tpropagate.schema.tags = false\n\tproxy.host = \n\tproxy.port = -1\n\trule.actions = []\n\trule.executors = []\n\trule.service.loader.enable = true\n\tschema.format = null\n\tschema.reflection = false\n\tschema.registry.basic.auth.user.info = [hidden]\n\tschema.registry.ssl.cipher.suites = null\n\tschema.registry.ssl.enabled.protocols = [TLSv1.2, TLSv1.3]\n\tschema.registry.ssl.endpoint.identification.algorithm = https\n\tschema.registry.ssl.engine.factory.class = null\n\tschema.registry.ssl.key.password = null\n\tschema.registry.ssl.keymanager.algorithm = SunX509\n\tschema.registry.ssl.keystore.certificate.chain = null\n\tschema.registry.ssl.keystore.key = null\n\tschema.registry.ssl.keystore.location = null\n\tschema.registry.ssl.keystore.password = null\n\tschema.registry.ssl.keystore.type = JKS\n\tschema.registry.ssl.protocol = TLSv1.3\n\tschema.registry.ssl.provider = null\n\tschema.registry.ssl.secure.random.implementation = null\n\tschema.registry.ssl.trustmanager.algorithm = PKIX\n\tschema.registry.ssl.truststore.certificates = null\n\tschema.registry.ssl.truststore.location = null\n\tschema.registry.ssl.truststore.password = null\n\tschema.registry.ssl.truststore.type = JKS\n\tschema.registry.url = [http://localhost:8081]\n\tuse.latest.version = false\n\tuse.latest.with.metadata = null\n\tuse.schema.id = -1\n\tvalue.subject.name.strategy = class io.confluent.kafka.serializers.subject.TopicNameStrategy\n\n2026-06-10 19:33:30 [main] INFO  org.apache.kafka.clients.producer.KafkaProducer - [Producer clientId=producer-5] Instantiated an idempotent producer.\n2026-06-10 19:33:30 [main] INFO  org.apache.kafka.clients.producer.ProducerConfig - These configurations '[key.deserializer, topic.creation.enable, schema.registry.url, value.deserializer, auto.create.topics.enable, group.id, api.version.request, auto.offset.reset]' were supplied but are not used yet.\n2026-06-10 19:33:30 [main] INFO  org.apache.kafka.common.utils.AppInfoParser - Kafka version: 3.8.0\n2026-06-10 19:33:30 [main] INFO  org.apache.kafka.common.utils.AppInfoParser - Kafka commitId: 771b9576b00ecf5b\n2026-06-10 19:33:30 [main] INFO  org.apache.kafka.common.utils.AppInfoParser - Kafka startTimeMs: 1781112810744\n2026-06-10 19:33:30 [kafka-producer-network-thread | producer-5] INFO  org.apache.kafka.clients.Metadata - [Producer clientId=producer-5] Cluster ID: Nk018hRAQFytWskYqtQduw\n2026-06-10 19:33:30 [kafka-producer-network-thread | producer-5] INFO  org.apache.kafka.clients.producer.internals.TransactionManager - [Producer clientId=producer-5] ProducerId set to 5003 with epoch 0\nMensaje key 1, value '{\"id\": 1, \"temperature\": 30}' enviado a la partición 0 con offset 0\n"
+          },
+          "metadata": {},
+          "execution_count": 28
+        }
+      ]
+    }
+  ]
+}
