@@ -7,7 +7,20 @@ El objetivo es practicar los principales conceptos que hemos visto en la teoría
 Para practicar los siguientes ejercicios será necesario ejecutar la aplicación **ProducerAvroApp** que vimos durante la primera semana.
 Esta aplicación producía eventos en el topic **temperature-telemetry**
 
-## KStreamApp
+```bash
+# Primero creamos el topic para evitar que se cree con auto.create.topics.enable=true
+docker exec -it broker-1 kafka-topics --bootstrap-server broker-1:29092 --create --topic temperature-telemetry --partitions 3 --replication-factor 2
+
+mvn exec:java -Dexec.mainClass=com.ucmmaster.kafka.avro
+.ProducerAvroApp
+```
+
+
+## KStreamApp - [ejemplo](https://github.com/confluentinc/tutorials/blob/master/filtering/kstreams/src/main/java/io/confluent/developer/FilterEvents.java)
+
+```bash
+mvn exec:java -Dexec.mainClass=com.ucmmaster.kafka.streams.KStreamApp
+```
 
 El primer ejercicio consta de una aplicación Kafka Streams que filtra las lecturas cuya temperatura sea >= 30 grados.
 
@@ -19,7 +32,7 @@ Revisa el código de la aplicación para entender los pasos.
 
 Ejecuta la aplicación y observa el topic resultante.
 
-## KTableApp
+## KTableApp - [ejemplo](https://github.com/confluentinc/tutorials/blob/master/schedule-ktable-ttl/kstreams/src/main/java/io/confluent/developer/KTableTTL.java)
 
 El segundo ejercicio consta de una aplicación Kafka Streams que filtra las lecturas cuya temperatura sea < 30 grados.
 
@@ -73,7 +86,7 @@ docker cp src/main/avro/*Telemetry.avsc connect:/home/appuser/
 Lanzamos el conector de devices:
 
 ```bash
-curl -d @"./connectors/source-datagen-devices.json" -H "Content-Type: application/json" -X POST http://localhost:8083/connectors | jq
+curl -s -d @"./connectors/source-datagen-devices.json" -H "Content-Type: application/json" -X POST http://localhost:8083/connectors | jq
 ```
 
 No te alarmes si aparece en rojo o detenido. El motivo es que una vez publica 100 registros se detiene.
@@ -81,7 +94,9 @@ No te alarmes si aparece en rojo o detenido. El motivo es que una vez publica 10
 El siguiente caso es opcional si ya tiene ejecutando el productor java utilizado en los ejercicios anteriores.
 
 ```bash
-curl -d @"./connectors/source-datagen-temperature-telemetry.json" -H "Content-Type: application/json" -X POST http://localhost:8083/connectors | jq
+curl -s -d @"./connectors/source-datagen-temperature-telemetry.json" -H "Content-Type: application/json" -X POST http://localhost:8083/connectors | jq
 ```
 
 Ejecuta la aplicación y observa el topic resultante.
+
+![Resultado alertas críticas KStreams](../.assets/kstreams-critical-alert.png)
