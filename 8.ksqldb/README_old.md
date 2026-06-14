@@ -31,15 +31,15 @@ SET 'auto.offset.reset' = 'earliest';
 Lo siguiente que haremos es algunas operaciones básicas, como crear un stream desde nuestro topic `users` que contiene los datos generados por `DataGenSourceConnector`
 
 ```bash
-curl -d @"../6.connect/connectors/source-datagen-users.json" -H "Content-Type: application/json" -X POST http://localhost:8083/connectors | jq
+curl -s -d @"../6.connect/connectors/source-datagen-users.json" -H "Content-Type: application/json" -X POST http://localhost:8083/connectors | jq
 ```
 
 Para ello ejecutamos la siguiente query:
 
 ```sql
-CREATE STREAM USERS_STREAM 
+CREATE STREAM USERS_STREAM
 WITH (
-KAFKA_TOPIC='users', 
+KAFKA_TOPIC='users',
 KEY_FORMAT='KAFKA',
 VALUE_FORMAT='AVRO');
 ```
@@ -128,10 +128,10 @@ CREATE STREAM USERS_REGISTRATION AS
 ```bash
 ksql> show streams;
 
- Stream Name        | Kafka Topic        | Key Format | Value Format | Windowed 
+ Stream Name        | Kafka Topic        | Key Format | Value Format | Windowed
 --------------------------------------------------------------------------------
- USERS_REGISTRATION | USERS_REGISTRATION | KAFKA      | AVRO         | false    
- USERS_STREAM       | users              | KAFKA      | AVRO         | false    
+ USERS_REGISTRATION | USERS_REGISTRATION | KAFKA      | AVRO         | false
+ USERS_STREAM       | users              | KAFKA      | AVRO         | false
 --------------------------------------------------------------------------------
 ```
 
@@ -163,9 +163,6 @@ CREATE TABLE USERS_REGISTRATIONS_COUNT AS
 ```sql
 SELECT * FROM USERS_REGISTRATIONS_COUNT;
 ```
-```bash
-
-```
 
 Contaremos los registros de cada usuario por minuto:
 
@@ -180,12 +177,19 @@ Agregamos el numero de conexiones del usuario con nuestro Stream base:
 
 ```bash
 CREATE STREAM USERS_AGG AS
-  SELECT l.`userid`, l.`registertime`,r.`COUNT`
+  SELECT
+    l.userid AS userid,
+    l.registertime AS registertime,
+    r.count AS total_registrations
   FROM USERS_STREAM l
-  JOIN USERS_REGISTRATIONS r
-  ON l.`userid` = r.`userid`
+  JOIN USER_REGISTRATIONS_COUNT r
+    ON l.userid = r.userid
   EMIT CHANGES;
 ```
+
+En caso de error al crearlo para borrar: `DROP STREAM USERS_AGG DELETE TOPIC;`
+
+
 ```bash
 show topics;
 ```
@@ -215,9 +219,9 @@ CREATE SOURCE CONNECTOR SOURCE_DATAGEN_USERS_KSQL WITH (
 );
 ```
 ```bash
- Message                                     
+ Message
 ---------------------------------------------
- Created connector SOURCE_DATAGEN_USERS_KSQL 
+ Created connector SOURCE_DATAGEN_USERS_KSQL
 ---------------------------------------------
 ```
 
@@ -225,9 +229,9 @@ CREATE SOURCE CONNECTOR SOURCE_DATAGEN_USERS_KSQL WITH (
 SHOW CONNECTORS;
 ```
 ```bash
-Connector Name               | Type   | Class                                               | Status                      
+Connector Name               | Type   | Class                                               | Status
 ---------------------------------------------------------------------------------------------------------------------------
- SOURCE_DATAGEN_USERS_KSQL    | SOURCE | io.confluent.kafka.connect.datagen.DatagenConnector | RUNNING (1/1 tasks RUNNING) 
+ SOURCE_DATAGEN_USERS_KSQL    | SOURCE | io.confluent.kafka.connect.datagen.DatagenConnector | RUNNING (1/1 tasks RUNNING)
 ```
 
 ```sql
@@ -241,9 +245,9 @@ Type                 : source
 State                : RUNNING
 WorkerId             : connect:8083
 
- Task ID | State   | Error Trace 
+ Task ID | State   | Error Trace
 ---------------------------------
- 0       | RUNNING |             
+ 0       | RUNNING |
 ---------------------------------
 ```
 
@@ -255,9 +259,9 @@ DROP CONNECTOR [ IF EXISTS ] <identifier>
 DROP CONNECTOR SOURCE_DATAGEN_USERS_KSQL;
 ```
 ```bash
- Message                                       
+ Message
 -----------------------------------------------
- Dropped connector "SOURCE_DATAGEN_USERS_KSQL" 
+ Dropped connector "SOURCE_DATAGEN_USERS_KSQL"
 -----------------------------------------------
 ```
 
@@ -286,14 +290,14 @@ PRINT users;
 
 ## Ejercicio 3
 
-Los streams y las tablas constituyen las dos abstracciones principales en el núcleo tanto de Kafka Streams como de ksqlDB. En ksqlDB, se denominan collections. 
+Los streams y las tablas constituyen las dos abstracciones principales en el núcleo tanto de Kafka Streams como de ksqlDB. En ksqlDB, se denominan collections.
 
 Las tablas pueden considerarse como una foto de un conjunto de datos que se actualiza de forma continua, en la que se almacena el estado más reciente o el resultado del cálculo (en el caso de una agregación) de cada clave única presente en un topic dentro de la collection subyacente.
 Están respaldadas por topics compactados y aprovechan los state stores de Kafka Streams.
-Un caso de uso muy habitual para las tablas es el enriquecimiento de datos basado en cruces (join-based data enrichment), en el que una tabla lookup puede consultarse para aportar contexto adicional sobre los eventos que llegan a través de un stream. 
+Un caso de uso muy habitual para las tablas es el enriquecimiento de datos basado en cruces (join-based data enrichment), en el que una tabla lookup puede consultarse para aportar contexto adicional sobre los eventos que llegan a través de un stream.
 Las tablas también desempeñan un papel especial en las agregaciones.
 
-Las streams, por su parte, se modelan como una secuencia inmutable de eventos. A diferencia de las tablas, que poseen características mutables, cada evento en un stream se considera independiente de todos los demás. 
+Las streams, por su parte, se modelan como una secuencia inmutable de eventos. A diferencia de las tablas, que poseen características mutables, cada evento en un stream se considera independiente de todos los demás.
 Las streams son stateless, lo que significa que cada evento se consume, se procesa y, posteriormente, se olvida.
 Para visualizar la diferencia, veamos la siguiente secuencia de eventos (las claves y valores se muestran como <clave, valor>):
 
@@ -342,10 +346,10 @@ CREATE TABLE titles (
 );
 ```
 La cláusula PRIMARY KEY especifica la columna clave para esta tabla, y dicha clave se deriva de la record key.
-Recordad que las tables poseen **semántica mutable** (de tipo actualización), de modo que si se reciben múltiples registros con la misma primary key, únicamente se almacenará el más reciente en la tabla. 
-La excepción a esta regla se produce cuando el record key está definida pero el valor es NULL. En tal caso, el registro se considera un tombstone y provocará la eliminación de la clave asociada. 
+Recordad que las tables poseen **semántica mutable** (de tipo actualización), de modo que si se reciben múltiples registros con la misma primary key, únicamente se almacenará el más reciente en la tabla.
+La excepción a esta regla se produce cuando el record key está definida pero el valor es NULL. En tal caso, el registro se considera un tombstone y provocará la eliminación de la clave asociada.
 Cabe destacar que, en el caso de las tablas, ksqlDB ignorará cualquier registro cuya key sea NULL (comportamiento que no se aplica a las streams).
-Dado que estamos especificando la propiedad PARTITIONS en la cláusula WITH, ksqlDB creará automáticamente el topic si aún no existe (en este caso, el topic se creará con cuatro particiones). 
+Dado que estamos especificando la propiedad PARTITIONS en la cláusula WITH, ksqlDB creará automáticamente el topic si aún no existe (en este caso, el topic se creará con cuatro particiones).
 También es posible establecer el factor de replicación del topic subyacente mediante la propiedad REPLICAS.
 
 ```sql
@@ -363,14 +367,14 @@ CREATE STREAM production_changes (
     TIMESTAMP_FORMAT='yyyy-MM-dd HH:mm:ss'
 );
 ```
-A diferencia de las tablas, los streams NO disponen de una columna primary key. 
-Los streams poseen una semántica **inmutable** (de tipo inserción), por lo que no es posible identificar de forma única los registros. 
+A diferencia de las tablas, los streams NO disponen de una columna primary key.
+Los streams poseen una semántica **inmutable** (de tipo inserción), por lo que no es posible identificar de forma única los registros.
 No obstante, el identificador KEY puede emplearse para asignar un alias a la columna que corresponde al record key (es decir, la clave del registro Kafka).
-Esta configuración indica a ksqlDB que la columna created_at contiene el timestamp que debe utilizarse para las operaciones basadas en tiempo, incluidas las agregaciones windowed y las uniones. 
+Esta configuración indica a ksqlDB que la columna created_at contiene el timestamp que debe utilizarse para las operaciones basadas en tiempo, incluidas las agregaciones windowed y las uniones.
 La propiedad TIMESTAMP_FORMAT, que aparece en la línea siguiente, especifica el formato de los timestamps de los registros.
 
-Las collections derivadas son el resultado de crear streams y tablas a partir de otros streams y tablas. 
-La sintaxis difiere ligeramente de la utilizada para crear otras colleciones, ya que no se especifican los esquemas de las columnas y se incorpora una cláusula adicional AS SELECT. 
+Las collections derivadas son el resultado de crear streams y tablas a partir de otros streams y tablas.
+La sintaxis difiere ligeramente de la utilizada para crear otras colleciones, ya que no se especifican los esquemas de las columnas y se incorpora una cláusula adicional AS SELECT.
 La sintaxis completa para la creación de colecciones derivadas es la siguiente:
 
 ```sql
