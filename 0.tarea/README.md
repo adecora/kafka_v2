@@ -6,13 +6,15 @@ El objetivo de esta carpeta es facilitar el desarrollo de la tarea.
 
 La carpeta se organiza en los directorios
 
+- **bin**: contiene los script para iniciar y apagar el entorno.
+
 - **datagen**: contiene los schemas de los dos datasets de FarmIA (*.avsc)
 
 - **connectors**: contiene los ficheros de configuración de los conectores a desarrollar (*.json)
 
 - **sql**: contiene el DDL de la tabla transactions (NO MODIFICAR)
 
-- **src**: contiene la estructura del proyecto en caso de utilizar Kafka Streams 
+- **src**: contiene la estructura del proyecto en caso de utilizar Kafka Streams
 
 ## Setup
 
@@ -28,7 +30,7 @@ para desarrollar la tarea.
 Se recomienda al alumno ver el contenido del fichero
 
 ```shell
-./setup.sh
+./bin/start-kafka-lab.sh
 ```
 
 ## Kafka Connect
@@ -41,11 +43,11 @@ Los conectores proporcionados (en azul) hacen uso del topic **_transactions** pa
 
 - source-datagen-_transactions: Genera transacciones que cumplen el schema requerido
 
-- sink-mysql-_transactions: Escribe las transacciones en la tabla de base de datos 
+- sink-mysql-_transactions: Escribe las transacciones en la tabla de base de datos
 
 El alumno es responsable de crear (en rojo) los dos conectores en rojo:
 
-- source-datagen-sensor-telemetry [DatagenSource](https://github.com/confluentinc/kafka-connect-datagen/blob/master/README.md#configuration) 
+- source-datagen-sensor-telemetry [DatagenSource](https://github.com/confluentinc/kafka-connect-datagen/blob/master/README.md#configuration)
 
 - source-mysql-sales_transactions [JDBCSource](https://docs.confluent.io/kafka-connectors/jdbc/current/source-connector/overview.html)
 
@@ -61,7 +63,8 @@ En alguno de los conectores pueden requerir aplicar SMTs (Simple Message Transfo
 De igual modo, se proporciona un script para automatizar la ejecución de todos los conectores:
 
 ```shell
-./start_connectors.sh
+# Este script es ejecutado desde `./bin/start-kafka-lab.sh`, no es necesario volver a ejecutarlo
+# ./bin/start_connectors.sh
 ```
 
 **NOTA**
@@ -77,5 +80,5 @@ A completar por el alumno usando la tecnología que prefiera.
 El siguiente script permite detener completamente el entorno
 
 ```shell
-./shutdown.sh
+./bin/shutdown.sh
 ```

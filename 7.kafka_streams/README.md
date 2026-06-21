@@ -11,8 +11,7 @@ Esta aplicación producía eventos en el topic **temperature-telemetry**
 # Primero creamos el topic para evitar que se cree con auto.create.topics.enable=true
 docker exec -it broker-1 kafka-topics --bootstrap-server broker-1:29092 --create --topic temperature-telemetry --partitions 3 --replication-factor 2
 
-mvn exec:java -Dexec.mainClass=com.ucmmaster.kafka.avro
-.ProducerAvroApp
+mvn exec:java -Dexec.mainClass=com.ucmmaster.kafka.avro.ProducerAvroApp
 ```
 
 

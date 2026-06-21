@@ -1,0 +1,15 @@
+{
+  "name": "sink-mongodb-sensor-alerts",
+  "config": {
+    "connector.class": "com.mongodb.kafka.connect.MongoSinkConnector",
+    "tasks.max": "1",
+    "connection.uri": "mongodb://admin:secret123@mongodb:27017/",
+    "database": "course",
+    "collection": "sensor_alerts",
+    "topics": "sensor-alerts",
+
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "io.confluent.connect.avro.AvroConverter",
+    "value.converter.schema.registry.url": "http://schema-registry:8081"
+  }
+}

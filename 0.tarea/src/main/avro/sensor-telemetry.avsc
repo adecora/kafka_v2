@@ -2,7 +2,65 @@
   "namespace": "com.farmia.iot",
   "name": "SensorTelemetry",
   "type": "record",
+  "doc": "Esquema para los eventos de telemetría generados con DatagenConnector",
   "fields": [
-    ...
+    {
+      "name": "sensor_id",
+      "type": {
+        "type": "string",
+        "arg.properties": {
+          "regex": "sensor_0[0-1][0-9]"
+        }
+      }
+    },
+    {
+      "name": "timestamp",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis",
+        "arg.properties": {
+          "iteration": {
+            "start": 1780272000000,
+            "step": 30000
+          }
+        }
+      }
+    },
+    {
+      "name": "temperature",
+      "type": {
+        "type": "float",
+        "arg.properties": {
+          "range": {
+            "min": -2.00,
+            "max": 40.00
+          }
+        }
+      }
+    },
+    {
+      "name": "humidity",
+      "type": {
+        "type": "float",
+        "arg.properties": {
+          "range": {
+            "min": 0.00,
+            "max": 80.00
+          }
+        }
+      }
+    },
+    {
+      "name": "soil_fertility",
+      "type": {
+        "type": "float",
+        "arg.properties": {
+          "range": {
+            "min": 30.00,
+            "max": 90.00
+          }
+        }
+      }
+    }
   ]
 }

@@ -50,6 +50,8 @@ Restauramos la configuración previa
 kafka-configs --bootstrap-server broker-1:29092 --entity-type brokers --entity-default --alter --add-config log.segment.bytes=1073741824
 ```
 
+El tamaño por defecto de log.segment.bytes es de `1073741824 = 1GiB`, el tiempo máximo antes de rotar a un nuevo segmento es de log.roll.hours `168horas = 7días`.
+
 ### kafka-topics
 
 El comando **kafka-topics** permite crear y administrar los topics de un cluster.
