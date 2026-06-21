@@ -538,6 +538,30 @@ $ docker exec -it mongodb mongosh mongodb://localhost:27017/course -u admin -p s
 
 [^11]: [Configuración básica de un conector *sink* de **MongoDB**.](https://www.mongodb.com/docs/kafka-connector/current/tutorials/sink-connector/)
 
+### Ejemplo de uso.
+
+#### Iniciar el laboratorio Kafka
+
+![Inciar el laboratorio Kafka.](assets/start-lab.gif)
+
+#### Comprobar el laboratorio
+
+![Comprobar el laboratorio.](assets/check-lab.gif)
+
+#### Explorar los topics generados
+
+![Explorar los topics generados.](assets/explore-topics.gif)
+
+#### Explorar las bases de datos generadas
+
+![Explorar las bases de datos generadas.](assets/explore-databases.gif)
+
+#### Apagar el laboratorio Kafka
+
+![Apagar el laboratorio Kafka.](assets/close-lab.gif)
+
+
+
 ---
 [@title]: #
 [Source - https://stackoverflow.com/a/35760941]: #
