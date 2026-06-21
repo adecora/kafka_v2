@@ -42,7 +42,7 @@ sleep 30
 
 info "Creando topics de Kafka..."
 for topic in _transactions sensor-telemetry sales_transactions sensor-alerts sales-summary; do
-  docker compose exec broker-1 kafka-topics --bootstrap-server broker-1:29092 --create --topic $topic --partitions 3 --replication-factor 2
+  docker compose exec broker-1 kafka-topics --bootstrap-server broker-1:29092 --create --topic $topic --partitions 3 --replication-factor 3
 done
 ok "Topics de Kafka creados"
 

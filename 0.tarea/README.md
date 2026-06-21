@@ -82,3 +82,7 @@ El siguiente script permite detener completamente el entorno
 ```shell
 ./bin/shutdown.sh
 ```
+
+## Memoria
+
+La memoria de la tarea está disponible en [farmia.md](farmia.md).

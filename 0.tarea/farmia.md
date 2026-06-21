@@ -47,7 +47,50 @@ Tarea del **Máster en Big Data & Data Engineering 2025-2026**, construcción de
 
 [^1]: [Extensión recomendada por Confluent para VS Code.](https://docs.confluent.io/cloud/current/client-apps/vs-code-extension.html?session_ref=https%3A%2F%2Fdocs.confluent.io%2Fplatform%2Fcurrent%2Fconnect%2Fkafka_connectors.html%3Fsession_ref%3Dhttps%253A%252F%252Fdocs.confluent.io%252F%26url_ref%3Dhttps%253A%252F%252Fdocs.confluent.io%252F&url_ref=https%3A%2F%2Fdocs.confluent.io%2F#confluent-for-vs-code-for-ccloud)
 
-### Tarea 1: Generación de Datos Sintéticos con Kafka Connect
+### Diseño de topics
+
+Los topics se declaran explicitamente en [setup.sh](bin/setup.sh), cada topic se define con 3 particiones y factor de replicación de 3. Con esta configuración, cada broker actúa como líder de un partición y mantiene réplicas de las otras dos, lo que permite distribuir la carga y mejorar la tolerancia a fallos.
+
+```bash
+info "Creando topics de Kafka..."
+for topic in _transactions sensor-telemetry sales_transactions sensor-alerts sales-summary; do
+  docker compose exec broker-1 kafka-topics --bootstrap-server broker-1:29092 --create --topic $topic --partitions 3 --replication-factor 3
+done
+ok "Topics de Kafka creados"
+```
+
+```mermaid
+flowchart LR
+  subgraph P0["Partition 0"]
+    direction TB
+    P0L["Broker 1<br/>Leader"]
+    P0F1["Broker 2<br/>Follower"]
+    P0F2["Broker 3<br/>Follower"]
+  end
+
+  subgraph P1["Partition 1"]
+    direction TB
+    P1L["Broker 2<br/>Leader"]
+    P1F1["Broker 3<br/>Follower"]
+    P1F2["Broker 1<br/>Follower"]
+  end
+
+  subgraph P2["Partition 2"]
+    direction TB
+    P2L["Broker 3<br/>Leader"]
+    P2F1["Broker 1<br/>Follower"]
+    P2F2["Broker 2<br/>Follower"]
+  end
+
+  %% Enlaces invisible para forzar el orden de las particiones
+  P0L ~~~ P1L
+  P1L ~~~ P2L
+```
+
+
+## Tarea
+
+### 1. Generación de Datos Sintéticos con Kafka Connect
 
 Se define el esquema **Avro** [sensor-telemetry.avsc](./src/main/avro/sensor-telemetry.avsc) para generar datos aleatorios[^2], este esquema simula 20 sensores **[00..19]** y marcas de tiempo partiendo de **01/06/2026** cada **30 segundos**.
 
@@ -142,7 +185,7 @@ Se define la configuración [source-datagen-sensor-telemetry.json](./connectors/
 [^2]: [Anotaciones soportadas en los esquemas **avro** para generar datos sintéticos.](https://github.com/confluentinc/avro-random-generator)
 [^3]: [Configurar el Datagen Source Connector.](https://docs.confluent.io/kafka-connectors/datagen/current/overview.html#mock-data-avro-and-sr)
 
-### Tarea 2: Integración de MySQL con Kafka Connect
+### 2. Integración de MySQL con Kafka Connect
 
 Se define la configuración del conector **JdbcSourceConnector** para consumir datos de **MySQL**.
 
@@ -232,7 +275,7 @@ $ curl -s "http://localhost:8081/subjects/sales_transactions-value/versions/1" |
 [^6]: [Propiedad de mapeo numérico del connector **JdbcSourceConnector**.](https://docs.confluent.io/kafka-connectors/jdbc/current/source-connector/overview.html#numeric-mapping-property)
 [^7]: [Decimal vs float.](https://docs.python.org/3/library/decimal.html)
 
-### Tarea 3: Procesamiento en Tiempo Real de sensores
+### 3. Procesamiento en Tiempo Real de sensores
 
 Se define el esquema para los mensajes del topic de `sensor-alerts` en [**src/main/avro/sensor-alerts.avsc**](src/main/avro/sensor-alerts.avsc). Para definir las alertas se utiliza el tipo **enum**[^8].
 
@@ -331,6 +374,8 @@ private List<SensorAlerts> classifyAlert(SensorTelemetry telemetry) {
 }
 ```
 
+En el fichero de configuracion [streams.properties](src/main/resources/streams.properties) se declara `num.stream.threads=3`[^10]. Esta propiedad configura 3 threads de procesamiento en la instancia de Kafka Streams, permitiendo procesar en paralelo las 3 particiones del topic.
+
 ```bash
 $ # Limpia y compila el proyecto Java
 $ mvn clean compile
@@ -346,8 +391,9 @@ El *stream* se inicializa en [start-kafka-lab.sh](bin/start-kafka-lab.sh) y se e
 
 [^8]: [Tipo enum **Avro**.](https://avro.apache.org/docs/1.11.1/specification/#enums)
 [^9]: [Ejemplo de confluence de **Kafka Streams**.](https://github.com/confluentinc/tutorials/blob/master/creating-first-apache-kafka-streams-application/kstreams/src/main/java/io/confluent/developer/KafkaStreamsApplication.java)
+[^10]: [Configuración del número de threads que ejecutan el procesamiento de streams.](https://docs.confluent.io/platform/current/installation/configuration/streams-configs.html#num-stream-threads)
 
-### Tarea 4: Procesamiento en Tiempo Real de transacciones de ventas
+### 4. Procesamiento en Tiempo Real de transacciones de ventas
 
 Se define el esquema para los datos del topic `sales-summary`. El campo `total_revenue` (total de ganancias) exige precisión, por lo que lo más correcto es utilizar el tipo lógico **decimal**. Sin embargo, por simplicidad para visualizar los datos en el topic, se utiliza **float**.
 
@@ -388,7 +434,7 @@ Se define el esquema para los datos del topic `sales-summary`. El campo `total_r
 }
 ```
 
-El comando `mvn generate-sources` genera la clase definida por el esquema [**sales-summary.avsc**](src/main/avro/sales-summary.avsc), para el esquema de los datos del topic de entrada se utiliza **GenericAvroSerde**[^10]
+El comando `mvn generate-sources` genera la clase definida por el esquema [**sales-summary.avsc**](src/main/avro/sales-summary.avsc), para el esquema de los datos del topic de entrada se utiliza **GenericAvroSerde**[^11]
 
 ```java
 public static final String INPUT_TOPIC = "sales_transactions";
@@ -461,8 +507,55 @@ El *stream* realiza las siguientes transformaciones sobre el topic de entrada:
   ![Topic intermedio generado por aggregate](assets/topic-intermedio-aggregate.png)
 5. Se mapea para cada uno de los registros del cálculo agregado, el inicio y el fin de la ventana de agregación y se devuelve un registro cuya *key* es la *key* de cada ventana de agregación y el *value* el registro generado.
 
-
 ![Visualización del topic `sales-summary`.](assets/sales-summary.png)
+
+En el fichero de configuracion [streams.properties](src/main/resources/streams.properties) se declara `num.stream.threads=3`. Esta propiedad configura 3 threads de procesamiento en la instancia de Kafka Streams, permitiendo procesar en paralelo las 3 particiones del topic.
+
+```mermaid
+flowchart LR
+  subgraph APP["Kafka Streams App<br/>application.id = sales-summary-app<br/>num.stream.threads = 3"]
+    direction TB
+
+    %% Nodo para generar espacio para el título
+    espacio[" "]
+    style espacio stroke-width:0px, fill:transparent, color: transparent
+
+    T0["StreamThread-1<br/>Task P0"]
+    T1["StreamThread-2<br/>Task P1"]
+    T2["StreamThread-3<br/>Task P2"]
+  end
+  style APP margin-top:40px
+
+
+  subgraph P0["Partition 0"]
+    direction TB
+    P0L["Broker 1<br/>Leader"]
+    P0F1["Broker 2<br/>Follower"]
+    P0F2["Broker 3<br/>Follower"]
+  end
+
+  subgraph P1["Partition 1"]
+    direction TB
+    P1L["Broker 2<br/>Leader"]
+    P1F1["Broker 3<br/>Follower"]
+    P1F2["Broker 1<br/>Follower"]
+  end
+
+  subgraph P2["Partition 2"]
+    direction TB
+    P2L["Broker 3<br/>Leader"]
+    P2F1["Broker 1<br/>Follower"]
+    P2F2["Broker 2<br/>Follower"]
+  end
+
+  P0L -->|"consume P0"| T0
+  P1L -->|"consume P1"| T1
+  P2L -->|"consume P2"| T2
+
+  %% Fuerza el orden visual
+  P0L ~~~ P1L
+  P1L ~~~ P2L
+```
 
 ```bash
 $ # Limpia y compila el proyecto Java
@@ -475,8 +568,7 @@ $ mvn exec:java -Dexec.mainClass=com.farmia.streaming.SalesSummaryApp
 
 El *stream* se inicializa en [start-kafka-lab.sh](bin/start-kafka-lab.sh) y se ejecuta en segundo plano.
 
-
-[^10]: [Serializador genérico de Avro proporcionado por Confluent.](https://docs.confluent.io/platform/current/streams/developer-guide/datatypes.html#avro)
+[^11]: [Serializador genérico de Avro proporcionado por Confluent.](https://docs.confluent.io/platform/current/streams/developer-guide/datatypes.html#avro)
 
 ### Tarea 5: Integración de MongoDB con Kafka Connect
 
@@ -491,7 +583,7 @@ El *stream* se inicializa en [start-kafka-lab.sh](bin/start-kafka-lab.sh) y se e
 > ```
 > Se modifica la imagen para usar **MongoDB 7.0**.
 
-Se define la configuración del conector para crear los datos de la colección `sensor_alerts` en **MongoDB**[^11].
+Se define la configuración del conector para crear los datos de la colección `sensor_alerts` en **MongoDB**[^12].
 
 ```json
 {
@@ -536,7 +628,7 @@ $ docker exec -it mongodb mongosh mongodb://localhost:27017/course -u admin -p s
 
 ![Colección **sensor_alerts** en la base de datos **course** de MongoDB.](assets/coleccion-mongodb.png)
 
-[^11]: [Configuración básica de un conector *sink* de **MongoDB**.](https://www.mongodb.com/docs/kafka-connector/current/tutorials/sink-connector/)
+[^12]: [Configuración básica de un conector *sink* de **MongoDB**.](https://www.mongodb.com/docs/kafka-connector/current/tutorials/sink-connector/)
 
 ### Ejemplo de uso.
 
@@ -547,6 +639,10 @@ $ docker exec -it mongodb mongosh mongodb://localhost:27017/course -u admin -p s
 #### Comprobar el laboratorio
 
 ![Comprobar el laboratorio.](assets/check-lab.gif)
+
+#### Explorar la plataforma Confluent
+
+![Explorar la plataforma Confluent.](assets/confluent.gif)
 
 #### Explorar los topics generados
 
