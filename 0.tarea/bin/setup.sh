@@ -46,4 +46,22 @@ for topic in _transactions sensor-telemetry sales_transactions sensor-alerts sal
 done
 ok "Topics de Kafka creados"
 
+info "Registrando esquemas en el Schema Registry..."
+registry_schema() {
+  local schema_file="$1"
+  local subject="$2"
+
+  info "Registrando el esquema '${schema_file##*/}' en el subject '$subject'."
+
+  jq '. | {schema: tojson}' "$schema_file" | \
+    curl -s -X POST -d @- -H "Content-Type: application/vnd.schemaregistry.v1+json" \
+      http://localhost:8081/subjects/$subject/versions | jq
+}
+
+registry_schema $TAREA_DIR/datagen/_transactions.avsc _transactions-value
+registry_schema $TAREA_DIR/src/main/avro/sensor-telemetry.avsc sensor-telemetry-value
+registry_schema $TAREA_DIR/src/main/avro/sensor-alerts.avsc sensor-alerts-value
+registry_schema $TAREA_DIR/src/main/avro/sales-summary.avsc sales-summary-value
+ok "Esquemas registrados"
+
 ok "Setup finalizado."

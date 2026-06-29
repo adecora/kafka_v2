@@ -41,11 +41,13 @@ Tarea del **Máster en Big Data & Data Engineering 2025-2026**, construcción de
   * Copia los drivers **MySQL**.
   * Copia los esquemas **Avro**, para la generación de datos sintéticos con Datagen.
   * Crea los topics de **Kafka** con la configuración especificando el número de particiones y el factor de replicación.
+  * Registra los esquemas en el Schema Registry.
   * Inicia los conectores de Kafka.
   * Inicia las aplicaciones de **Kafka Streams** para que se ejecuten en segundo plano.
-  * Configura el modo de compatibilidad BACKWARD para los esquemas del **Schema Registry**.
+  * Configura de forma explícita el modo de compatibilidad BACKWARD para cada subject del **Schema Registry**. Si un subject no tiene compatibilidad definida, se usa el modo de compatibilidad definido a nivel global.[^20]
 
 [^1]: [Extensión recomendada por Confluent para VS Code.](https://docs.confluent.io/cloud/current/client-apps/vs-code-extension.html?session_ref=https%3A%2F%2Fdocs.confluent.io%2Fplatform%2Fcurrent%2Fconnect%2Fkafka_connectors.html%3Fsession_ref%3Dhttps%253A%252F%252Fdocs.confluent.io%252F%26url_ref%3Dhttps%253A%252F%252Fdocs.confluent.io%252F&url_ref=https%3A%2F%2Fdocs.confluent.io%2F#confluent-for-vs-code-for-ccloud)
+[^20]: [Compatibilidad de esquemas en el Schema Registry.](https://docs.confluent.io/platform/current/schema-registry/develop/api.html#test-compatibility-against-a-particular-schema-subject-version)
 
 ### Diseño de topics
 
@@ -634,27 +636,27 @@ $ docker exec -it mongodb mongosh mongodb://localhost:27017/course -u admin -p s
 
 #### Iniciar el laboratorio Kafka
 
-![Inciar el laboratorio Kafka.](assets/start-lab.gif)
+![Inciar el laboratorio Kafka.](https://raw.githubusercontent.com/adecora/kafka_v2/refs/heads/main/0.tarea/assets/start-lab.gif)
 
 #### Comprobar el laboratorio
 
-![Comprobar el laboratorio.](assets/check-lab.gif)
+![Comprobar el laboratorio.](https://raw.githubusercontent.com/adecora/kafka_v2/refs/heads/main/0.tarea/assets/check-lab.gif)
 
 #### Explorar la plataforma Confluent
 
-![Explorar la plataforma Confluent.](assets/confluent.gif)
+![Explorar la plataforma Confluent.](https://raw.githubusercontent.com/adecora/kafka_v2/refs/heads/main/0.tarea/assets/confluent.gif)
 
 #### Explorar los topics generados
 
-![Explorar los topics generados.](assets/explore-topics.gif)
+![Explorar los topics generados.](https://raw.githubusercontent.com/adecora/kafka_v2/refs/heads/main/0.tarea/assets/explore-topics.gif)
 
 #### Explorar las bases de datos generadas
 
-![Explorar las bases de datos generadas.](assets/explore-databases.gif)
+![Explorar las bases de datos generadas.](https://raw.githubusercontent.com/adecora/kafka_v2/refs/heads/main/0.tarea/assets/explore-databases.gif)
 
 #### Apagar el laboratorio Kafka
 
-![Apagar el laboratorio Kafka.](assets/close-lab.gif)
+![Apagar el laboratorio Kafka.](https://raw.githubusercontent.com/adecora/kafka_v2/refs/heads/main/0.tarea/assets/close-lab.gif)
 
 
 

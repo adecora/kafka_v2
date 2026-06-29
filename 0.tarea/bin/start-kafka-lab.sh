@@ -24,9 +24,12 @@ export pid_sales_summary=$!
 ok "Aplicaciones de Kafka Streams iniciadas en segundo plano con PID's: $pid_sensor_alerter, $pid_sales_summary"
 
 
-info "Configurando el modo BACKWARD para los esquemas definidos en el Schema Registry..."
+# Se configura explicitamente el modo BACKWARD para todos los subjects definidos en el Schema Registry.
+# Si un subject no tiene compatibilidad definida, se usa el modo de compatibilidad definido a nivel global.
+# Ver: https://docs.confluent.io/platform/current/schema-registry/develop/api.html#test-compatibility-against-a-particular-schema-subject-version
+info "Configurando el modo BACKWARD para los subjects definidos en el Schema Registry..."
 for schema in $(curl -s "http://localhost:8081/subjects" | jq -r '.[]'); do
-  info "Configurando modo BACKWARD para el esquema: $schema"
+  info "Configurando modo BACKWARD para el subject: $schema"
   curl -s -X PUT -H "Content-Type: application/json" --data '{"compatibility": "backward"}' "http://localhost:8081/config/$schema" | jq
 done
-ok "Modo BACKWARD configurado para todos los esquemas en el Schema Registry"
+ok "Modo BACKWARD configurado para todos los subjects en el Schema Registry"
